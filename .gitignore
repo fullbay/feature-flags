@@ -1,2 +1,7 @@
 .idea/
+.phpunit.cache
+composer.lock
+coverage/
+phpstan.neon
+phpunit.xml
 vendor/
