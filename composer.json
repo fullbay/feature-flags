@@ -1,0 +1,46 @@
+{
+  "name": "fullbay/feature-flags",
+  "description": "PHP client for interacting with Fullbay feature flags",
+  "type": "library",
+  "require": {
+    "php": "^8.2",
+    "guzzlehttp/guzzle": "^7.0",
+    "gamez/typed-collection": "^7.1"
+  },
+  "require-dev": {
+    "laravel/pint": "^1.17",
+    "phpunit/phpunit": "^11.3",
+    "mockery/mockery": "^1.6",
+    "phpstan/phpstan": "^1.12"
+  },
+  "autoload": {
+    "psr-4": {
+      "Fullbay\\FeatureFlags\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Jaysen Nuttall",
+      "email": "jaysen@fullbay.com"
+    }
+  ],
+  "scripts": {
+    "analyze": "phpstan",
+    "lint": "pint",
+    "test": "phpunit",
+    "testcoverage": [
+      "XDEBUG_MODE=coverage phpunit --coverage-html=coverage"
+    ],
+    "testintegration": "phpunit tests/Integration",
+    "precommit": [
+      "@composer analyze",
+      "@composer lint --repair",
+      "@composer test"
+    ]
+  }
+}
