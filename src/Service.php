@@ -18,12 +18,21 @@ class Service
     /**
      * @param  array<string, mixed>  $attributes
      */
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @param  callable  $errorHandler
+     */
     public function __construct(
         private readonly Client $client,
         private readonly TrafficType $trafficType,
         private readonly mixed $trafficId,
-        private readonly array $attributes
-    ) {}
+        private readonly array $attributes,
+        private $errorHandler = null
+    ) {
+        $this->errorHandler = $errorHandler ?? function(Throwable $e) {
+            error_log($e->getMessage());
+        };
+    }
 
     private function fetchFlags(): void
     {
@@ -52,14 +61,17 @@ class Service
                 $this->flags->put($flag, new Flag($flag, $data['treatment'], $data['config'] ?? ''));
             }
         } catch (JsonException $exception) {
+            ($this->errorHandler)($exception);
             if ($this->throwExceptions) {
                 throw new FeatureFlagsException('Could not parse flag data', previous: $exception);
             }
         } catch (GuzzleException $exception) {
+            ($this->errorHandler)($exception);
             if ($this->throwExceptions) {
                 throw new FeatureFlagsException('Network error', previous: $exception);
             }
         } catch (Throwable $exception) {
+            ($this->errorHandler)($exception);
             if ($this->throwExceptions) {
                 throw new FeatureFlagsException('Internal error', previous: $exception);
             }
@@ -121,7 +133,8 @@ class Service
         string $authToken,
         TrafficType $trafficType,
         mixed $trafficId,
-        array $attributes
+        array $attributes,
+        callable $errorHandler = null
     ): self {
         $client = new Client([
             'base_uri' => $url,
@@ -130,7 +143,7 @@ class Service
             ],
         ]);
 
-        return new self($client, $trafficType, $trafficId, $attributes);
+        return new self($client, $trafficType, $trafficId, $attributes, $errorHandler);
     }
 
     public function throwOnErrors(): self
