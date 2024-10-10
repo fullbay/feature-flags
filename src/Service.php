@@ -27,7 +27,8 @@ class Service
         private readonly TrafficType $trafficType,
         private readonly mixed $trafficId,
         private readonly array $attributes,
-        private $errorHandler = null
+        private $errorHandler = null,
+        private readonly float $timeout = 1.5
     ) {
         $this->errorHandler = $errorHandler ?? function(Throwable $e) {
             error_log($e->getMessage());
@@ -52,6 +53,7 @@ class Service
                         'keys' => $this->getQueryKeys(),
                         'attributes' => $this->getQueryAttributes(),
                     ],
+                    'timeout' => $this->timeout,
                 ]
             );
 
@@ -126,7 +128,14 @@ class Service
     }
 
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param string $url
+     * @param string $authToken
+     * @param TrafficType $trafficType
+     * @param mixed $trafficId
+     * @param array $attributes
+     * @param callable|null $errorHandler
+     * @param float $timeout
+     * @return Service
      */
     public static function make(
         string $url,
@@ -134,7 +143,8 @@ class Service
         TrafficType $trafficType,
         mixed $trafficId,
         array $attributes,
-        callable $errorHandler = null
+        callable $errorHandler = null,
+        float $timeout = 1.5
     ): self {
         $client = new Client([
             'base_uri' => $url,
@@ -143,7 +153,7 @@ class Service
             ],
         ]);
 
-        return new self($client, $trafficType, $trafficId, $attributes, $errorHandler);
+        return new self($client, $trafficType, $trafficId, $attributes, $errorHandler, $timeout);
     }
 
     public function throwOnErrors(): self
