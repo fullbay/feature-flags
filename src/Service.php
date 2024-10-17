@@ -28,7 +28,7 @@ class Service
         private readonly mixed $trafficId,
         private readonly array $attributes,
         private $errorHandler = null,
-        private readonly float $timeout = 1.5
+        private readonly float $timeout = 0.5
     ) {
         $this->errorHandler = $errorHandler ?? function(Throwable $e) {
             error_log($e->getMessage());
@@ -144,7 +144,7 @@ class Service
         mixed $trafficId,
         array $attributes,
         callable $errorHandler = null,
-        float $timeout = 1.5
+        float $timeout = 0.5
     ): self {
         $client = new Client([
             'base_uri' => $url,
