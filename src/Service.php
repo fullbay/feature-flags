@@ -15,8 +15,6 @@ class Service
 
     private bool $throwExceptions = false;
 
-    const FF_ENV_PREFIX = 'FEATURE_FLAG_';
-
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -84,13 +82,6 @@ class Service
 
     public function getFlag(string $key): Flag
     {
-        $envKey = self::FF_ENV_PREFIX . $key;
-        $envValue = getenv($envKey);
-    
-        if ($envValue !== false) {
-            return new Flag($key, $envValue);
-        }
-    
         $this->fetchFlags();
         return $this->flags->get($key) ?? new Flag($key);
     }

@@ -6,6 +6,9 @@ use Throwable;
 
 readonly class Flag
 {
+
+    const FF_ENV_PREFIX = 'FEATURE_FLAG_';
+
     public function __construct(
         private string $key,
         private mixed $value = null,
@@ -19,10 +22,14 @@ readonly class Flag
 
     public function getValue(): mixed
     {
+        $envKey = self::FF_ENV_PREFIX . $this->key;
+        $envValue = getenv($envKey);
+        $value = $envValue !== false ? $envValue : $this->value;
+
         return match (true) {
-            in_array($this->value, ['on', 'On', 'ON']) => true,
-            in_array($this->value, ['off', 'Off', 'OFF']) => false,
-            isset($this->value) => $this->value,
+            in_array($value, ['on', 'On', 'ON']) => true,
+            in_array($value, ['off', 'Off', 'OFF']) => false,
+            isset($value) => $value,
             default => null,
         };
     }
