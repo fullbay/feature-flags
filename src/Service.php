@@ -22,7 +22,7 @@ class Service
      */
     /**
      * @param  array<string, mixed>  $attributes
-     * @param  callable  $errorHandler
+     * @param null|callable $errorHandler
      */
     public function __construct(
         private readonly Client $client,
@@ -30,11 +30,14 @@ class Service
         private readonly mixed $trafficId,
         private readonly array $attributes,
         private $errorHandler = null,
-        private readonly float $timeout = 0.5
+        private float $timeout = null
     ) {
         $this->errorHandler = $errorHandler ?? function(Throwable $e) {
             error_log($e->getMessage());
         };
+
+        $this->timeout = $errorHandler ?? $_SERVER['FF_SERVICE_TIMEOUT'] ?? 0.5;
+
     }
 
     private function fetchFlags(): void
