@@ -30,7 +30,7 @@ class Service
         private readonly mixed $trafficId,
         private readonly array $attributes,
         private $errorHandler = null,
-        private readonly float $timeout = 0.5
+        private readonly float $timeout = 2.0
     ) {
         $this->errorHandler =
             $errorHandler ??
