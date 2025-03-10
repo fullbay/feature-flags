@@ -30,11 +30,13 @@ class Service
         private readonly mixed $trafficId,
         private readonly array $attributes,
         private $errorHandler = null,
-        private readonly float $timeout = 0.5
+        private readonly float $timeout = 2.0
     ) {
-        $this->errorHandler = $errorHandler ?? function(Throwable $e) {
-            error_log($e->getMessage());
-        };
+        $this->errorHandler =
+            $errorHandler ??
+            function (Throwable $e) {
+                error_log($e->getMessage());
+            };
     }
 
     private function fetchFlags(): void
@@ -59,25 +61,45 @@ class Service
                 ]
             );
 
-            $decodedResponse = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+            $decodedResponse = json_decode(
+                $response->getBody()->getContents(),
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
 
-            foreach ($decodedResponse[$this->trafficType->value] as $flag => $data) {
-                $this->flags->put($flag, new Flag($flag, $data['treatment'], $data['config'] ?? ''));
+            foreach (
+                $decodedResponse[$this->trafficType->value]
+                as $flag => $data
+            ) {
+                $this->flags->put(
+                    $flag,
+                    new Flag($flag, $data['treatment'], $data['config'] ?? '')
+                );
             }
         } catch (JsonException $exception) {
             ($this->errorHandler)($exception);
             if ($this->throwExceptions) {
-                throw new FeatureFlagsException('Could not parse flag data', previous: $exception);
+                throw new FeatureFlagsException(
+                    'Could not parse flag data',
+                    previous: $exception
+                );
             }
         } catch (GuzzleException $exception) {
             ($this->errorHandler)($exception);
             if ($this->throwExceptions) {
-                throw new FeatureFlagsException('Network error', previous: $exception);
+                throw new FeatureFlagsException(
+                    'Network error',
+                    previous: $exception
+                );
             }
         } catch (Throwable $exception) {
             ($this->errorHandler)($exception);
             if ($this->throwExceptions) {
-                throw new FeatureFlagsException('Internal error', previous: $exception);
+                throw new FeatureFlagsException(
+                    'Internal error',
+                    previous: $exception
+                );
             }
         }
     }
@@ -86,11 +108,11 @@ class Service
     {
         $envKey = self::FF_ENV_PREFIX . $key;
         $envValue = getenv($envKey);
-    
+
         if ($envValue !== false) {
             return new Flag($key, $envValue);
         }
-    
+
         $this->fetchFlags();
         return $this->flags->get($key) ?? new Flag($key);
     }
@@ -108,7 +130,7 @@ class Service
 
         $flags = $this->flags->only($keys);
         foreach ($keys as $key) {
-            if (! $flags->has($key)) {
+            if (!$flags->has($key)) {
                 $flags->put($key, new Flag($key));
             }
         }
@@ -130,7 +152,12 @@ class Service
     private function getQueryKeys(): string
     {
         return json_encode(
-            [['matchingKey' => $this->trafficId, 'trafficType' => $this->trafficType->value]],
+            [
+                [
+                    'matchingKey' => $this->trafficId,
+                    'trafficType' => $this->trafficType->value,
+                ],
+            ],
             JSON_THROW_ON_ERROR
         );
     }
@@ -161,7 +188,14 @@ class Service
             ],
         ]);
 
-        return new self($client, $trafficType, $trafficId, $attributes, $errorHandler, $timeout);
+        return new self(
+            $client,
+            $trafficType,
+            $trafficId,
+            $attributes,
+            $errorHandler,
+            $timeout
+        );
     }
 
     public function throwOnErrors(): self
