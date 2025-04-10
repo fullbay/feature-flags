@@ -179,13 +179,14 @@ class Service
         mixed $trafficId,
         array $attributes,
         callable $errorHandler = null,
-        float $timeout = 0.5
+        float $timeout = 2.0
     ): self {
         $client = new Client([
             'base_uri' => $url,
             'headers' => [
                 'Authorization' => $authToken,
             ],
+            'timeout' => $timeout,
         ]);
 
         return new self(
