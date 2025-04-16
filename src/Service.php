@@ -2,8 +2,7 @@
 
 namespace Fullbay\FeatureFlags;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use SplitIO\Sdk;
 use JsonException;
 use Throwable;
 
@@ -25,7 +24,7 @@ class Service
      * @param  callable  $errorHandler
      */
     public function __construct(
-        private readonly Client $client,
+        private readonly Sdk\Client $client,
         private readonly TrafficType $trafficType,
         private readonly mixed $trafficId,
         private readonly array $attributes,
@@ -49,48 +48,19 @@ class Service
         $this->flags = new FlagCollection();
 
         try {
-            $response = $this->client->request(
-                'GET',
-                '/client/get-all-treatments-with-config',
-                [
-                    'query' => [
-                        'keys' => $this->getQueryKeys(),
-                        'attributes' => $this->getQueryAttributes(),
-                    ],
-                    'timeout' => $this->timeout,
-                ]
-            );
+            $responseData = $this->client->getTreatmentsWithConfigByFlagSets(
+                $this->getQueryKeys(), 
+                ['backend'], 
+                $this->getQueryAttributes());
+                
+            // DONT REMOVE THIS - Uncomment to log ff response data. 
+            // error_log("feature flags returned:");
+            // error_log(json_encode($responseData));
 
-            $decodedResponse = json_decode(
-                $response->getBody()->getContents(),
-                true,
-                512,
-                JSON_THROW_ON_ERROR
-            );
-
-            foreach (
-                $decodedResponse[$this->trafficType->value]
-                as $flag => $data
-            ) {
+            foreach ($responseData as $flag => $data) {
                 $this->flags->put(
                     $flag,
                     new Flag($flag, $data['treatment'], $data['config'] ?? '')
-                );
-            }
-        } catch (JsonException $exception) {
-            ($this->errorHandler)($exception);
-            if ($this->throwExceptions) {
-                throw new FeatureFlagsException(
-                    'Could not parse flag data',
-                    previous: $exception
-                );
-            }
-        } catch (GuzzleException $exception) {
-            ($this->errorHandler)($exception);
-            if ($this->throwExceptions) {
-                throw new FeatureFlagsException(
-                    'Network error',
-                    previous: $exception
                 );
             }
         } catch (Throwable $exception) {
@@ -109,6 +79,7 @@ class Service
         $envKey = self::FF_ENV_PREFIX . $key;
         $envValue = getenv($envKey);
 
+        // this allows env var to override the flag value, for debug/testing
         if ($envValue !== false) {
             return new Flag($key, $envValue);
         }
@@ -141,9 +112,9 @@ class Service
     /**
      * @throws JsonException
      */
-    private function getQueryAttributes(): string
+    private function getQueryAttributes(): array
     {
-        return json_encode($this->attributes ?? [], JSON_THROW_ON_ERROR);
+        return $this->attributes ?? [];
     }
 
     /**
@@ -181,14 +152,31 @@ class Service
         callable $errorHandler = null,
         float $timeout = 2.0
     ): self {
-        $client = new Client([
-            'base_uri' => $url,
-            'headers' => [
-                'Authorization' => $authToken,
-            ],
-            'timeout' => $timeout,
-        ]);
-
+        if (empty($_SERVER['SPLITIO_SDK_API_KEY'])) {
+            error_log('WARNING: SPLITIO_SDK_API_KEY is not set. NO FEATURE FLAGS WILL BE USED.');
+            return new self(
+                new Sdk\Client(),
+                $trafficType,
+                $trafficId,
+                $attributes,
+                $errorHandler,
+                $timeout
+            );
+        }
+        $splitFactory = Sdk::factory($_SERVER['SPLITIO_SDK_API_KEY'], array(
+            'cache' => array('adapter' => 'predis', 
+                            'parameters' => [
+                                'scheme' => 'tcp', 
+                                'host' => $_SERVER['REDIS_HOST'], 
+                                'port' => 6379, 
+                                'timeout' => 881
+                            ], 
+                            'options' => [
+                                'prefix' => 'ff.' . $_SERVER['ENVIRONMENT'],
+                            ]
+                        )
+        ));
+        $client = $splitFactory->client();
         return new self(
             $client,
             $trafficType,
