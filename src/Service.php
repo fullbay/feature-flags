@@ -54,8 +54,8 @@ class Service
                 $this->getQueryAttributes());
                 
             // DONT REMOVE THIS - Uncomment to log ff response data. 
-            // error_log("feature flags returned:");
-            // error_log(json_encode($responseData));
+            error_log("feature flags returned:");
+            error_log(json_encode($responseData));
 
             foreach ($responseData as $flag => $data) {
                 $this->flags->put(
